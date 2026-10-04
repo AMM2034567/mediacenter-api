@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Dict, List, Optional
 import httpx
 
@@ -49,9 +50,14 @@ class SourceManager:
     
     def __init__(self):
         self._sources: Dict[str, SourceInfo] = {}
+        self._last_updated: float = time.time()
         # Prepopulate with fallback sources
         for s in FALLBACK_SOURCES:
             self._sources[s.key] = s
+
+    def need_refresh(self) -> bool:
+        """Checks if remote sources need to be re-synchronized based on TTL (12h default)."""
+        return (time.time() - self._last_updated) > settings.SOURCE_CACHE_TTL
 
     @classmethod
     def get_instance(cls) -> "SourceManager":
@@ -102,6 +108,7 @@ class SourceManager:
                 
                 if new_sources:
                     self._sources = new_sources
+                    self._last_updated = time.time()
                     logger.info(f"Successfully loaded {len(self._sources)} sources from remote subscription!")
                 else:
                     logger.warning("Decoded remote config had no api_site entries, keeping existing sources.")

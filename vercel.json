@@ -3,5 +3,11 @@
     "main.py": {
       "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/sources/cron",
+      "schedule": "0 4 * * *"
+    }
+  ]
 }

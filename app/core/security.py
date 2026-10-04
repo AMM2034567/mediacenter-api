@@ -27,6 +27,10 @@ async def verify_api_key(
     if not provided_key:
         provided_key = request.query_params.get("api_key")
         
+    # Allow Vercel automated Cron jobs
+    if request.headers.get("x-vercel-cron"):
+        return "vercel-cron"
+        
     if not provided_key or provided_key != settings.API_KEY:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

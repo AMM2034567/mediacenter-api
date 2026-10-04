@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from typing import List, Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
@@ -5,6 +7,7 @@ from pydantic import BaseModel
 from app.models.media import SourceInfo, ApiResponse
 from app.sources.manager import SourceManager
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/sources", tags=["Sources"])
 
 class RefreshRequest(BaseModel):
@@ -14,8 +17,16 @@ class RefreshRequest(BaseModel):
 async def list_sources():
     """
     获取当前后端注册的所有可用影视源列表
+    若距上次同步超过 12 小时 (TTL)，将自动请求 GitHub 拉取最新订阅配置
     """
     source_mgr = SourceManager.get_instance()
+    if source_mgr.need_refresh():
+        try:
+            logger.info("Daily TTL expired, refreshing sources from GitHub subscription...")
+            await asyncio.wait_for(source_mgr.reload_from_remote(), timeout=5.0)
+        except Exception as e:
+            logger.warning(f"Auto daily source refresh failed or timed out: {e}")
+
     sources = source_mgr.list_sources()
     return ApiResponse(
         code=0,
@@ -23,10 +34,11 @@ async def list_sources():
         data=sources
     )
 
+@router.get("/cron", response_model=ApiResponse[dict])
 @router.post("/refresh", response_model=ApiResponse[dict])
 async def refresh_sources(body: Optional[RefreshRequest] = None):
     """
-    手动或定时触发：从远程 GitHub 重新拉取最新 Base58 配置并更新源列表
+    手动调用或由 Vercel Cron 每日定时任务调用：从 GitHub 重新拉取最新订阅并同步影视源
     """
     custom_url = body.url if body else None
     source_mgr = SourceManager.get_instance()
