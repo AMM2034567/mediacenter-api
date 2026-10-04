@@ -59,3 +59,15 @@ async def root():
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "ok"}
+
+from fastapi import Request
+
+@app.api_route("/{path_name:path}", methods=["GET", "POST", "HEAD"], include_in_schema=False)
+async def catch_all(request: Request, path_name: str):
+    return {
+        "status": "debug_path",
+        "path_name": path_name,
+        "url_path": request.url.path,
+        "scope_path": request.scope.get("path"),
+        "root_path": request.scope.get("root_path")
+    }
