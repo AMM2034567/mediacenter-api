@@ -1,10 +1,11 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.core.security import verify_api_key
 from app.sources.manager import SourceManager
 from app.api.v1.search import router as search_router
 from app.api.v1.detail import router as detail_router
@@ -28,7 +29,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="聚合多媒体中心后台 API 服务 (聚合影视/番剧/多源串流)",
+    description="聚合多媒体中心后台 API 服务 (安全凭证保护版)",
+    docs_url="/docs" if settings.ENABLE_DOCS else None,
+    redoc_url=None,
+    openapi_url="/openapi.json" if settings.ENABLE_DOCS else None,
     lifespan=lifespan
 )
 
@@ -41,10 +45,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register API Routers
-app.include_router(search_router, prefix="/api/v1")
-app.include_router(detail_router, prefix="/api/v1")
-app.include_router(source_router, prefix="/api/v1")
+# Register API Routers with API Key Authentication
+app.include_router(search_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(detail_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(source_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 
 @app.get("/", tags=["Health"])
 async def root():

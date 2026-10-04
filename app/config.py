@@ -22,4 +22,10 @@ class Settings(BaseSettings):
     # 源配置缓存时间 (秒)
     SOURCE_CACHE_TTL: int = 43200  # 12小时
 
+    # 安全配置：API 密钥鉴权 (可由环境变量 API_KEY 覆盖)
+    API_KEY: str = os.getenv("API_KEY", "center_sec_amm2077")
+
+    # 是否开启 Swagger 文档界面 (生产环境可通过 ENABLE_DOCS=false 关闭)
+    ENABLE_DOCS: bool = os.getenv("ENABLE_DOCS", "true").lower() in ("true", "1")
+
 settings = Settings()
