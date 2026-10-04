@@ -9,21 +9,20 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Fallback default sources: all 28 verified sources pre-embedded for instant cold-start
+# Fallback default sources: prioritized by reliability and speed for cold-start
 FALLBACK_SOURCES: List[SourceInfo] = [
-    SourceInfo(key="iqiyizyapi.com", name="🎬-爱奇艺-", api="https://iqiyizyapi.com/api.php/provide/vod", detail_url="https://iqiyizyapi.com"),
-    SourceInfo(key="dbzy.tv", name="🎬豆瓣资源", api="https://caiji.dbzy5.com/api.php/provide/vod", detail_url="https://dbzy.tv"),
-    SourceInfo(key="mtzy.me", name="🎬茅台资源", api="https://caiji.maotaizy.cc/api.php/provide/vod", detail_url="https://mtzy.me"),
-    SourceInfo(key="wolongzyw.com", name="🎬卧龙资源", api="https://wolongzyw.com/api.php/provide/vod", detail_url="https://wolongzyw.com"),
-    SourceInfo(key="ikunzy.com", name="🎬iKun资源", api="https://ikunzyapi.com/api.php/provide/vod", detail_url="https://ikunzy.com"),
     SourceInfo(key="dyttzyapi.com", name="🎬电影天堂", api="http://caiji.dyttzyapi.com/api.php/provide/vod", detail_url="http://caiji.dyttzyapi.com"),
-    SourceInfo(key="www.maoyanzy.com", name="🎬猫眼资源", api="https://api.maoyanapi.top/api.php/provide/vod", detail_url="https://www.maoyanzy.com"),
     SourceInfo(key="cj.lzcaiji.com", name="🎬量子资源", api="https://cj.lzcaiji.com/api.php/provide/vod", detail_url="https://cj.lzcaiji.com"),
+    SourceInfo(key="bfzy.tv", name="🎬暴风资源", api="https://bfzyapi.com/api.php/provide/vod", detail_url="https://bfzy.tv"),
+    SourceInfo(key="ffzyapi.com", name="🎬非凡资源", api="https://api.ffzyapi.com/api.php/provide/vod", detail_url="https://cj.ffzyapi.com"),
+    SourceInfo(key="ikunzy.com", name="🎬iKun资源", api="https://ikunzyapi.com/api.php/provide/vod", detail_url="https://ikunzy.com"),
+    SourceInfo(key="dbzy.tv", name="🎬豆瓣资源", api="https://caiji.dbzy5.com/api.php/provide/vod", detail_url="https://dbzy.tv"),
     SourceInfo(key="360zy.com", name="🎬360 资源", api="https://360zyzz.com/api.php/provide/vod", detail_url="https://360zy.com"),
     SourceInfo(key="jszyapi.com", name="🎬极速资源", api="https://jszyapi.com/api.php/provide/vod", detail_url="https://jszyapi.com"),
+    SourceInfo(key="mtzy.me", name="🎬茅台资源", api="https://caiji.maotaizy.cc/api.php/provide/vod", detail_url="https://mtzy.me"),
+    SourceInfo(key="wolongzyw.com", name="🎬卧龙资源", api="https://wolongzyw.com/api.php/provide/vod", detail_url="https://wolongzyw.com"),
+    SourceInfo(key="www.maoyanzy.com", name="🎬猫眼资源", api="https://api.maoyanapi.top/api.php/provide/vod", detail_url="https://www.maoyanzy.com"),
     SourceInfo(key="www.moduzy.net", name="🎬魔都资源", api="https://www.mdzyapi.com/api.php/provide/vod", detail_url="https://www.moduzy.net"),
-    SourceInfo(key="ffzyapi.com", name="🎬非凡资源", api="https://api.ffzyapi.com/api.php/provide/vod", detail_url="https://cj.ffzyapi.com"),
-    SourceInfo(key="bfzy.tv", name="🎬暴风资源", api="https://bfzyapi.com/api.php/provide/vod", detail_url="https://bfzy.tv"),
     SourceInfo(key="zuida.xyz", name="🎬最大资源", api="https://api.zuidapi.com/api.php/provide/vod", detail_url="https://zuida.xyz"),
     SourceInfo(key="wujinzy.me", name="🎬无尽资源", api="https://api.wujinapi.me/api.php/provide/vod", detail_url="https://wujinzy.com"),
     SourceInfo(key="xinlangapi.com", name="🎬新浪资源", api="https://api.xinlangapi.com/xinlangapi.php/provide/vod", detail_url="https://xinlangapi.com"),
@@ -39,6 +38,7 @@ FALLBACK_SOURCES: List[SourceInfo] = [
     SourceInfo(key="www.haohuazy.com", name="🎬豪华资源", api="https://hhzyapi.com/api.php/provide/vod", detail_url="https://www.haohuazy.com"),
     SourceInfo(key="bdzy1.com", name="🎬百度云zy", api="https://pz.v88.qzz.io/?url=https://api.apibdzy.com/api.php/provide/vod", detail_url="https://bdzy1.com"),
     SourceInfo(key="lovedan.net", name="🎬艾旦影视", api="https://pz.v88.qzz.io/?url=https://lovedan.net/api.php/provide/vod", detail_url="https://lovedan.net"),
+    SourceInfo(key="iqiyizyapi.com", name="🎬-爱奇艺-", api="https://iqiyizyapi.com/api.php/provide/vod", detail_url="https://iqiyizyapi.com"),
 ]
 
 # Dedicated Anime Sources parsed from https://sub.creamycake.org/v1/css1.json

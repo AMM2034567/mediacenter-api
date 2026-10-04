@@ -79,11 +79,42 @@ async def search_media(
     if cat_normalized != "all":
         all_results = [item for item in all_results if match_category(item.type_name or "", cat_normalized)]
 
-    # Sort/deduplicate or preserve best match
+    # Reliability and match relevance scoring
+    reliable_source_scores: Dict[str, float] = {
+        "dyttzyapi.com": 120.0,
+        "cj.lzcaiji.com": 110.0,
+        "bfzy.tv": 105.0,
+        "ffzyapi.com": 100.0,
+        "ikunzy.com": 95.0,
+        "dbzy.tv": 90.0,
+        "360zy.com": 80.0,
+        "jszyapi.com": 75.0,
+        "iqiyizyapi.com": -80.0,
+    }
+
+    def _score_item(item: SearchItem) -> float:
+        score = 0.0
+        t = item.title.strip().lower()
+        k = keyword.lower()
+        if t == k:
+            score += 300.0
+        elif t.startswith(k):
+            score += 200.0
+        elif k in t:
+            score += 100.0
+        else:
+            score += 30.0
+
+        score += reliable_source_scores.get(item.source_key, 10.0)
+        if item.cover:
+            score += 15.0
+        return score
+
+    all_results.sort(key=_score_item, reverse=True)
+
     # Save into memory cache
     _search_cache[cache_key] = (now, all_results)
 
-    
     return ApiResponse(
         code=0,
         message=f"found {len(all_results)} results across {len(target_sources)} sources",
