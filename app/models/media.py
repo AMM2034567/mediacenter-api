@@ -67,8 +67,24 @@ class AnimeSourceInfo(BaseModel):
     search_url: str = Field(..., description="搜索模板链接")
     tier: int = Field(0, description="优先级等级")
 
-class ApiResponse(BaseModel, Generic[T]):
+class ParsedStream(BaseModel):
+    original_url: str = Field(..., description="原始输入URL")
+    stream_url: str = Field(..., description="解析出的有效流媒体播放URL")
+    format: str = Field("m3u8", description="流媒体格式: m3u8, mp4, etc.")
+    headers: dict[str, str] = Field(default_factory=dict, description="播放该流推荐附加的HTTP请求头(如Referer, User-Agent)")
+    is_sniffed: bool = Field(False, description="是否经过网页深度嗅探提取")
+    status_code: int = Field(200, description="上游探测响应状态码")
+    title: Optional[str] = Field(None, description="网页或流媒体标题")
 
+class ProbeResult(BaseModel):
+    url: str
+    is_alive: bool
+    status_code: int
+    latency_ms: float
+    content_type: Optional[str] = None
+    headers: dict[str, str] = Field(default_factory=dict)
+
+class ApiResponse(BaseModel, Generic[T]):
     code: int = 0
     message: str = "ok"
     data: Optional[T] = None
