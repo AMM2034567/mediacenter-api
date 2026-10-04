@@ -7,3 +7,5 @@ env/
 .env
 .pytest_cache/
 test_api.py
+
+.vercel

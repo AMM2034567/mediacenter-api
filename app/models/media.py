@@ -37,6 +37,22 @@ class MediaDetail(SearchItem):
     directors: Optional[str] = Field(None, description="导演")
     routes: List[PlayRoute] = Field(default_factory=list, description="播放线路与选集列表")
 
+class BangumiItem(BaseModel):
+    id: int = Field(..., description="Bangumi条目ID")
+    name: str = Field(..., description="原名(日文/英文)")
+    name_cn: str = Field(..., description="中文译名")
+    air_date: Optional[str] = Field(None, description="首播日期")
+    air_weekday: int = Field(..., description="放送星期(1-7)")
+    score: Optional[float] = Field(None, description="评分")
+    cover: Optional[str] = Field(None, description="封面海报")
+    summary: Optional[str] = Field(None, description="剧情概述")
+
+class BangumiWeekday(BaseModel):
+    weekday_id: int = Field(..., description="星期ID (1-7)")
+    weekday_cn: str = Field(..., description="星期名称，如 星期一")
+    weekday_en: str = Field(..., description="英文名称，如 Mon")
+    items: List[BangumiItem] = Field(default_factory=list, description="当日新番列表")
+
 class SourceInfo(BaseModel):
     key: str
     name: str
@@ -44,7 +60,16 @@ class SourceInfo(BaseModel):
     detail_url: Optional[str] = None
     is_active: bool = True
 
+class AnimeSourceInfo(BaseModel):
+    name: str = Field(..., description="动漫专线源名称")
+    description: Optional[str] = Field("", description="说明")
+    icon_url: Optional[str] = Field(None, description="图标链接")
+    search_url: str = Field(..., description="搜索模板链接")
+    tier: int = Field(0, description="优先级等级")
+
 class ApiResponse(BaseModel, Generic[T]):
+
     code: int = 0
     message: str = "ok"
     data: Optional[T] = None
+

@@ -3,7 +3,7 @@ import time
 from typing import Dict, List, Optional
 import httpx
 
-from app.models.media import SourceInfo
+from app.models.media import SourceInfo, AnimeSourceInfo
 from app.core.base58 import decode_base58_json
 from app.config import settings
 
@@ -41,6 +41,29 @@ FALLBACK_SOURCES: List[SourceInfo] = [
     SourceInfo(key="lovedan.net", name="🎬艾旦影视", api="https://pz.v88.qzz.io/?url=https://lovedan.net/api.php/provide/vod", detail_url="https://lovedan.net"),
 ]
 
+# Dedicated Anime Sources parsed from https://sub.creamycake.org/v1/css1.json
+FALLBACK_ANIME_SOURCES: List[AnimeSourceInfo] = [
+    AnimeSourceInfo(name="稀饭动漫", icon_url="https://dm1.xfdm.pro/upload/site/20240308-1/813e41f81d6f85bfd7a44bf8a813f9e5.png", search_url="https://dm1.xfdm.pro/search.html?wd={keyword}", tier=0),
+    AnimeSourceInfo(name="girigiri愛動漫", icon_url="https://girigirilove.com/app/app_files/anime.girigirilove.com_.png", search_url="https://ani.girigirilove.com/search/-------------/?wd={keyword}", tier=0),
+    AnimeSourceInfo(name="嘀嗒影视", description="直连，来自嘀嗒影视", icon_url="https://www.didahd.pro/template/mytheme/statics/img/favicon.ico", search_url="https://www.didahd.pro/search/-------------.html?wd={keyword}&submit=", tier=1),
+    AnimeSourceInfo(name="叽哔动漫", description="直连，来自叽哔动漫", icon_url="https://www.jibi.cc/upload/mxprocms/20240530-1/811f55cb787194c59e3f6d1d8724571c.jpg", search_url="https://www.jibi.cc/index.php/vod/search.html?wd={keyword}", tier=3),
+    AnimeSourceInfo(name="E-ACG", description="直连，来自E-ACG", icon_url="https://i.loli.net/2019/12/09/17hvXK2LemTtgfs.png", search_url="https://www.eacg1.com/vodsearch/-------------.html?wd={keyword}", tier=3),
+    AnimeSourceInfo(name="森之屋动漫", description="直连，来自森之屋动漫", icon_url="https://senfun.in/static/senfun/mxtheme/images/favicon.png", search_url="https://senfun.in/search.html?wd={keyword}", tier=3),
+    AnimeSourceInfo(name="风车影视", description="直连，来自风车影视", icon_url="https://www.dongmandaquan.vip/template/a_0011/images/favicon.ico?v=20221112", search_url="https://www.dongmandaquan.vip/vodsearch/-------------.html?wd={keyword}", tier=3),
+    AnimeSourceInfo(name="去看吧", description="直连，来自去看吧", icon_url="https://11kt.net/klogo.png", search_url="https://11kt.net/index.php/vod/search.html?wd={keyword}", tier=3),
+    AnimeSourceInfo(name="海星动漫", description="直连", icon_url="https://www.haixingdmx.com/hdst/hx_pic/favicon.ico", search_url="https://www.haixingdmx.com/s_all?ex=1&kw={keyword}", tier=4),
+    AnimeSourceInfo(name="樱花动漫", icon_url="https://www.yinghua2.com/statics/img/favicon.ico", search_url="https://www.yinghua2.com/index.php/vod/search.html?wd={keyword}", tier=4),
+    AnimeSourceInfo(name="嘀哩嘀哩", description="直连，来自嘀哩嘀哩", icon_url="https://bkimg.cdn.bcebos.com/pic/c2fdfc039245d688d43f36eaa0986a1ed21b0ef48e71", search_url="https://dilidili.io/search?q={keyword}", tier=4),
+    AnimeSourceInfo(name="新优酷", description="直连，来自新优酷", icon_url="https://www.youknow.tv/upload/mxprocms/20240119-1/55e70266f81055026bb40dee6a603812.png", search_url="https://www.youknow.tv/search/-------------/?wd={keyword}", tier=4),
+    AnimeSourceInfo(name="番茄动漫", icon_url="https://www.fqdm.cc/upload/mxprocms/20240530-1/3d17fab3cb763e6ad7031974bf87f322.jpg", search_url="https://www.fqdm.cc/index.php/vod/search.html?wd={keyword}", tier=4),
+    AnimeSourceInfo(name="hanime1_1080p", description="动漫专线", search_url="https://hanime1.me/search?query={keyword}", tier=4),
+    AnimeSourceInfo(name="hanime1_720p", description="备用专线", search_url="https://hanime1.me/search?query={keyword}", tier=4),
+    AnimeSourceInfo(name="wedm", search_url="https://www.vdm5.com/search_-------------.html?wd={keyword}", tier=4),
+    AnimeSourceInfo(name="影视森林", icon_url="http://www.hc34567.com/static/images/logo.png", search_url="http://www.hc34567.com/hcvodsearch/{keyword}----------1---.html", tier=4),
+    AnimeSourceInfo(name="热播之家", description="直连", icon_url="https://www.rebozj.pro/template/jianhei/statics/img/favicon.png", search_url="https://www.rebozj.pro/search/-------------.html?wd={keyword}&submit=", tier=4),
+]
+
+
 class SourceManager:
     """
     Manages active media sources.
@@ -50,6 +73,7 @@ class SourceManager:
     
     def __init__(self):
         self._sources: Dict[str, SourceInfo] = {}
+        self._anime_sources: List[AnimeSourceInfo] = list(FALLBACK_ANIME_SOURCES)
         self._last_updated: float = time.time()
         # Prepopulate with fallback sources
         for s in FALLBACK_SOURCES:
@@ -68,8 +92,37 @@ class SourceManager:
     def list_sources(self) -> List[SourceInfo]:
         return list(self._sources.values())
 
+    def list_anime_sources(self) -> List[AnimeSourceInfo]:
+        return self._anime_sources
+
     def get_source(self, key: str) -> Optional[SourceInfo]:
         return self._sources.get(key)
+
+    async def reload_anime_sources(self, url: Optional[str] = None) -> int:
+        """Fetches and updates anime sources from creamy cake subscription."""
+        target_url = url or settings.ANIME_SOURCE_URL
+        try:
+            async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+                resp = await client.get(target_url)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    media_sources = data.get("exportedMediaSourceDataList", {}).get("mediaSources", [])
+                    new_anime_sources: List[AnimeSourceInfo] = []
+                    for s in media_sources:
+                        args = s.get("arguments", {})
+                        new_anime_sources.append(AnimeSourceInfo(
+                            name=args.get("name", "未命名源"),
+                            description=args.get("description", ""),
+                            icon_url=args.get("iconUrl"),
+                            search_url=args.get("searchConfig", {}).get("searchUrl", ""),
+                            tier=args.get("tier", 0)
+                        ))
+                    if new_anime_sources:
+                        self._anime_sources = new_anime_sources
+                        logger.info(f"Loaded {len(self._anime_sources)} anime sources from {target_url}")
+        except Exception as e:
+            logger.warning(f"Failed to reload anime sources: {e}")
+        return len(self._anime_sources)
 
     async def reload_from_remote(self, url: Optional[str] = None) -> int:
         """
@@ -79,6 +132,12 @@ class SourceManager:
         target_url = url or settings.DEFAULT_SOURCE_URL
         logger.info(f"Fetching remote source config from: {target_url}")
         
+        # Also reload anime sources
+        try:
+            await self.reload_anime_sources()
+        except Exception as e:
+            logger.debug(f"Anime source reload error: {e}")
+
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             try:
                 resp = await client.get(target_url)
@@ -117,3 +176,4 @@ class SourceManager:
                 logger.error(f"Error decoding or updating remote source config: {e}")
                 
         return len(self._sources)
+

@@ -10,6 +10,8 @@ from app.sources.manager import SourceManager
 from app.api.v1.search import router as search_router
 from app.api.v1.detail import router as detail_router
 from app.api.v1.source import router as source_router
+from app.api.v1.bangumi import router as bangumi_router
+from app.api.v1.category import router as category_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -49,6 +51,9 @@ app.add_middleware(
 app.include_router(search_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(detail_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(source_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(bangumi_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(category_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+
 
 @app.get("/", tags=["Health"])
 async def root():

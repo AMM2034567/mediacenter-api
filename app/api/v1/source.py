@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
 
-from app.models.media import SourceInfo, ApiResponse
+from app.models.media import SourceInfo, AnimeSourceInfo, ApiResponse
 from app.sources.manager import SourceManager
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,19 @@ async def list_sources():
         message=f"total {len(sources)} sources",
         data=sources
     )
+
+@router.get("/anime", response_model=ApiResponse[List[AnimeSourceInfo]])
+async def list_anime_sources():
+    """
+    获取动漫专属专线源列表 (来自 creamy cake 专线订阅)
+    """
+    sources = SourceManager.get_instance().list_anime_sources()
+    return ApiResponse(
+        code=0,
+        message=f"total {len(sources)} anime sources",
+        data=sources
+    )
+
 
 @router.get("/cron", response_model=ApiResponse[dict])
 @router.post("/refresh", response_model=ApiResponse[dict])

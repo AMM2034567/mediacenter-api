@@ -22,6 +22,17 @@ class Settings(BaseSettings):
     # 源配置缓存时间 (秒)
     SOURCE_CACHE_TTL: int = 43200  # 12小时
 
+    # Bangumi 番组计划时刻表 API 与镜像
+    BANGUMI_API_URL: str = os.getenv("BANGUMI_API_URL", "https://api.bgm.tv/calendar")
+    BANGUMI_MIRROR_URL: str = os.getenv("BANGUMI_MIRROR_URL", "https://bangumi.vip/calendar")
+    BANGUMI_CACHE_TTL: int = 43200  # 12小时
+
+    # 动漫专属专线源订阅
+    ANIME_SOURCE_URL: str = os.getenv(
+        "ANIME_SOURCE_URL",
+        "https://sub.creamycake.org/v1/css1.json"
+    )
+
     # 安全配置：API 密钥鉴权 (可由环境变量 API_KEY 覆盖)
     API_KEY: str = os.getenv("API_KEY", "pXrftYC2bd")
 
