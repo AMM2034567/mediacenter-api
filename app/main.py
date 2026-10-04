@@ -69,5 +69,7 @@ async def catch_all(request: Request, path_name: str):
         "path_name": path_name,
         "url_path": request.url.path,
         "scope_path": request.scope.get("path"),
-        "root_path": request.scope.get("root_path")
+        "root_path": request.scope.get("root_path"),
+        "headers": dict(request.headers),
+        "query_params": dict(request.query_params)
     }
