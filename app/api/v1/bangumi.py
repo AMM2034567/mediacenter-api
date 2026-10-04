@@ -1,7 +1,8 @@
 import logging
 import time
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter
+from urllib.parse import urlparse, quote
+from fastapi import APIRouter, Query, Response, HTTPException
 import httpx
 
 from app.models.media import ApiResponse, BangumiItem, BangumiWeekday
@@ -72,7 +73,10 @@ def _parse_calendar(raw_data: List[Dict[str, Any]]) -> List[BangumiWeekday]:
             score = rating_info.get("score") if isinstance(rating_info, dict) else None
 
             images = it.get("images") or {}
-            cover = images.get("large") or images.get("common") or images.get("medium")
+            raw_cover = images.get("large") or images.get("common") or images.get("medium")
+            cover = raw_cover
+            if raw_cover and ("bgm.tv" in raw_cover or "bangumi.tv" in raw_cover):
+                cover = f"/api/v1/bangumi/cover?url={quote(raw_cover, safe='')}"
 
             items.append(BangumiItem(
                 id=b_id,
@@ -138,3 +142,39 @@ async def refresh_calendar():
         _calendar_cache = (time.time(), weekdays)
     total_count = sum(len(w.items) for w in weekdays)
     return ApiResponse(code=0, message="calendar refreshed", data={"total_anime": total_count})
+
+@router.get("/cover")
+async def get_bangumi_cover(url: str = Query(..., description="Bangumi image URL to proxy")):
+    """
+    Image proxy for Bangumi posters.
+    Caches image with 30-day Cache-Control for Cloudflare Edge & client caching.
+    """
+    if not (url.startswith("http://") or url.startswith("https://")):
+        raise HTTPException(status_code=400, detail="Invalid URL protocol")
+    
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if not (host == "lain.bgm.tv" or host.endswith(".bgm.tv") or host.endswith(".bangumi.tv")):
+        raise HTTPException(status_code=403, detail="Forbidden: Only Bangumi domains allowed")
+        
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://bangumi.tv/",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, headers=headers) as client:
+            resp = await client.get(url)
+            if resp.status_code == 200:
+                ct = resp.headers.get("content-type", "image/jpeg")
+                return Response(
+                    content=resp.content,
+                    media_type=ct,
+                    headers={
+                        "Cache-Control": "public, max-age=2592000, s-maxage=2592000, immutable",
+                        "Access-Control-Allow-Origin": "*",
+                    }
+                )
+    except Exception as e:
+        logger.warning(f"Failed to fetch Bangumi cover from {url}: {e}")
+        
+    raise HTTPException(status_code=404, detail="Image not found")

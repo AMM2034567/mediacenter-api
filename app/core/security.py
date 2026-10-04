@@ -30,6 +30,10 @@ async def verify_api_key(
     # Allow Vercel automated Cron jobs
     if request.headers.get("x-vercel-cron"):
         return "vercel-cron"
+
+    # Allow public endpoints (e.g. Bangumi cover image proxy for CDN / image caching)
+    if request.url.path.endswith("/bangumi/cover") or request.url.path in ("/health", "/"):
+        return "public"
         
     if not provided_key or provided_key != settings.API_KEY:
         raise HTTPException(
