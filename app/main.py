@@ -7,12 +7,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.security import verify_api_key
 from app.sources.manager import SourceManager
+from app.sources.live_manager import LiveManager
 from app.api.v1.search import router as search_router
 from app.api.v1.detail import router as detail_router
 from app.api.v1.source import router as source_router
 from app.api.v1.bangumi import router as bangumi_router
 from app.api.v1.category import router as category_router
 from app.api.v1.parse import router as parse_router
+from app.api.v1.live import router as live_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,9 +24,10 @@ logger = logging.getLogger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Load sources in background so server starts immediately
+    # Startup: Load video sources and IPTV/Radio sources in background
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     asyncio.create_task(SourceManager.get_instance().reload_from_remote())
+    asyncio.create_task(LiveManager.get_instance().reload_all_sources())
     yield
     # Shutdown
     logger.info("Shutting down...")
@@ -55,6 +58,7 @@ app.include_router(source_router, prefix="/api/v1", dependencies=[Depends(verify
 app.include_router(bangumi_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(category_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(parse_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(live_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 
 
 @app.get("/", tags=["Health"])
@@ -64,7 +68,8 @@ async def root():
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
         "docs": "/docs",
-        "sources_count": len(SourceManager.get_instance().list_sources())
+        "sources_count": len(SourceManager.get_instance().list_sources()),
+        "live_channels_count": len(LiveManager.get_instance().list_channels()),
     }
 
 @app.get("/health", tags=["Health"])

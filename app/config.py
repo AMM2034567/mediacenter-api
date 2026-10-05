@@ -33,6 +33,27 @@ class Settings(BaseSettings):
         "https://sub.creamycake.org/v1/css1.json"
     )
 
+    # IPTV 电视直播订阅源列表 (精选国内高稳定性公网 CDN 源，规避移动内网失效组播/单播源)
+    IPTV_SOURCE_URLS: list[str] = [
+        "https://raw.githubusercontent.com/vbskycn/iptv/refs/heads/master/tv/iptv4.m3u",
+        "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/result.m3u",
+    ]
+
+    # 广播电台 (FM/音频广播) 订阅源列表
+    RADIO_SOURCE_URLS: list[str] = [
+        "https://raw.githubusercontent.com/fanmingming/live/main/radio/m3u/index.m3u",
+    ]
+
+    # GitHub CDN 加速镜像前缀 (用于国内网络环境突破 GitHub Raw 访问限制)
+    GITHUB_CDN_PREFIXES: list[str] = [
+        "",  # 直连优先
+        "https://ghproxy.net/",
+        "https://raw.gitmirror.com/",
+    ]
+
+    # 直播与广播订阅缓存时间 (秒)
+    LIVE_CACHE_TTL: int = 21600  # 6小时
+
     # 安全配置：API 密钥鉴权 (可由环境变量 API_KEY 覆盖)
     API_KEY: str = os.getenv("API_KEY", "pXrftYC2bd")
 
@@ -40,3 +61,4 @@ class Settings(BaseSettings):
     ENABLE_DOCS: bool = os.getenv("ENABLE_DOCS", "true").lower() in ("true", "1")
 
 settings = Settings()
+

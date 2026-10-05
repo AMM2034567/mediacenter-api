@@ -33,10 +33,17 @@ uvicorn app.main:app --host 0.0.0.0 --port 7860 --reload
 
 | 接口 | 方法 | 说明 | 示例 |
 | :--- | :--- | :--- | :--- |
-| `/api/v1/sources` | `GET` | 获取当前注册的所有可用源列表 | `/api/v1/sources` |
+| `/api/v1/sources` | `GET` | 获取当前注册的所有可用视频源列表 | `/api/v1/sources` |
 | `/api/v1/sources/refresh` | `POST` | 手动/定时重新从 GitHub 拉取更新源 | `/api/v1/sources/refresh` |
 | `/api/v1/search` | `GET` | 多源并发搜索影视/番剧 | `/api/v1/search?kw=凡人修仙传&limit=20` |
 | `/api/v1/detail` | `GET` | 获取影片详情及所有播放线路与分集列表 | `/api/v1/detail?id=maccms:ikunzy.com:17712` |
+| `/api/v1/live/groups` | `GET` | 获取电视频道与电台分组分类 (央视/卫视/广播/轮播等) | `/api/v1/live/groups` |
+| `/api/v1/live/channels` | `GET` | 获取频道列表 (支持 `?group=央视频道`、`?kw=CCTV`、`?is_radio=true`) | `/api/v1/live/channels?group=央视频道` |
+| `/api/v1/live/channel/{id}` | `GET` | 获取指定频道详情与多源合并后的冗余线路列表 | `/api/v1/live/channel/live:cctv1综合` |
+| `/api/v1/live/radio/top` | `GET` | 获取来自 Radio-Browser + 内置央广的高热度广播电台 | `/api/v1/live/radio/top?limit=50` |
+| `/api/v1/live/radio/search` | `GET` | 关键词搜索海量网络广播电台 | `/api/v1/live/radio/search?kw=音乐` |
+| `/api/v1/live/probe` | `GET` | 毫秒级探测直播/音频串流连通性与网络延迟 | `/api/v1/live/probe?url=http://.../index.m3u8` |
+| `/api/v1/live/export.m3u` | `GET` | 导出聚合去重后的标准 M3U 直播源列表文件 | `/api/v1/live/export.m3u` |
 
 ---
 
