@@ -15,6 +15,7 @@ from app.api.v1.bangumi import router as bangumi_router
 from app.api.v1.category import router as category_router
 from app.api.v1.parse import router as parse_router
 from app.api.v1.live import router as live_router
+from app.api.v1.music import router as music_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +60,7 @@ app.include_router(bangumi_router, prefix="/api/v1", dependencies=[Depends(verif
 app.include_router(category_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(parse_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 app.include_router(live_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
+app.include_router(music_router, prefix="/api/v1", dependencies=[Depends(verify_api_key)])
 
 
 @app.get("/", tags=["Health"])
