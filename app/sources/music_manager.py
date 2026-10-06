@@ -284,6 +284,72 @@ class MusicManager:
             logger.error(f"Error searching NetEase: {e}")
         return results
 
+    async def _enrich_qq_songs(self, client: httpx.AsyncClient, songs: List[MusicSong]) -> List[MusicSong]:
+        """通过 QQ 音乐 getSongDetail 批量补全歌曲的封面、专辑名、时长信息"""
+        if not songs:
+            return songs
+
+        mids = [s.mid for s in songs if s.mid]
+        if not mids:
+            return songs
+
+        qq_headers = dict(DOMESTIC_HEADERS)
+        qq_headers["Referer"] = "https://y.qq.com/"
+
+        # 批量查询歌曲详情
+        detail_map: Dict[str, dict] = {}
+        try:
+            payload = {
+                "songinfo": {
+                    "module": "music.pf_song_detail_svr",
+                    "method": "get_song_detail_yqq",
+                    "param": {"song_mid_list": mids[:30]},
+                }
+            }
+            r = await client.post(
+                "https://u.y.qq.com/cgi-bin/musicu.fcg",
+                json=payload, headers=qq_headers, timeout=8.0
+            )
+            if r.status_code == 200:
+                info_list = r.json().get("songinfo", {}).get("data", {}).get("track_info", [])
+                for info in info_list:
+                    m = info.get("mid")
+                    if m:
+                        detail_map[m] = info
+                logger.info(f"Enriched {len(detail_map)} QQ songs via getSongDetail")
+        except Exception as e:
+            logger.warning(f"Error enriching QQ songs via getSongDetail: {e}")
+
+        if not detail_map:
+            return songs
+
+        enriched: List[MusicSong] = []
+        for song in songs:
+            info = detail_map.get(song.mid) if song.mid else None
+            if info:
+                album_obj = info.get("album", {})
+                album_name = album_obj.get("name") or song.album
+                album_mid = album_obj.get("mid")
+                cover = f"https://y.gtimg.cn/music/photo_new/T002R300x300M000{album_mid}.jpg" if album_mid else song.cover
+                duration = info.get("interval", 0) or song.duration
+                title = info.get("title") or song.name
+                singers = [a.get("name", "") for a in info.get("singer", []) if a.get("name")]
+                artist_name = " / ".join(singers) if singers else song.artist
+                enriched.append(MusicSong(
+                    id=song.id,
+                    name=title,
+                    artist=artist_name,
+                    album=album_name,
+                    cover=_format_cover_url(cover),
+                    duration=duration,
+                    platform="qq",
+                    mid=song.mid,
+                    play_url=song.play_url,
+                ))
+            else:
+                enriched.append(song)
+        return enriched
+
     async def _search_qq(self, client: httpx.AsyncClient, keyword: str, limit: int = 30) -> List[MusicSong]:
         """搜索 QQ 音乐官方源，优先使用 DoSearchForQQMusicDesktop，失败回退到 Tang 与 Smartbox"""
         qq_songs: List[MusicSong] = []
@@ -304,10 +370,11 @@ class MusicManager:
                     },
                 }
             }
-            r = await client.post("https://u.y.qq.com/cgi-bin/musicu.fcg", json=payload, headers=qq_headers, timeout=5.0)
+            r = await client.post("https://u.y.qq.com/cgi-bin/musicu.fcg", json=payload, headers=qq_headers, timeout=10.0)
             if r.status_code == 200:
                 body = r.json().get("req", {}).get("data", {}).get("body", {})
                 slist = body.get("song", {}).get("list", [])
+                logger.info(f"QQ official search for '{keyword}': status=200, songs_found={len(slist)}")
                 for s in slist:
                     mid = s.get("mid")
                     if not mid:
@@ -335,16 +402,19 @@ class MusicManager:
                     )
                 if qq_songs:
                     return qq_songs
+            else:
+                logger.warning(f"QQ official search for '{keyword}': status={r.status_code}")
         except Exception as e:
-            logger.warning(f"Error calling QQ DoSearchForQQMusicDesktop: {e}")
+            logger.warning(f"Error calling QQ DoSearchForQQMusicDesktop for '{keyword}': {e}")
 
         # 2. 回退 Tang 接口
         try:
             qq_url = f"https://tang.api.s01s.cn/music_open_api.php?msg={keyword}&type=json"
-            r_qq = await client.get(qq_url, timeout=3.5)
+            r_qq = await client.get(qq_url, timeout=5.0)
             if r_qq.status_code == 200:
                 data = r_qq.json()
                 if isinstance(data, list):
+                    logger.info(f"QQ Tang fallback for '{keyword}': {len(data)} results")
                     for item in data[:limit]:
                         mid = item.get("song_mid")
                         title = item.get("song_title", "")
@@ -363,6 +433,8 @@ class MusicManager:
                                 )
                             )
                 if qq_songs:
+                    # 批量补全封面、专辑、时长
+                    qq_songs = await self._enrich_qq_songs(client, qq_songs)
                     return qq_songs
         except Exception as e:
             logger.warning(f"Error calling QQ Tang fallback: {e}")
@@ -370,9 +442,10 @@ class MusicManager:
         # 3. 回退 Smartbox
         try:
             smartbox_url = f"https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key={keyword}&format=json"
-            r_sb = await client.get(smartbox_url, headers=qq_headers, timeout=3.5)
+            r_sb = await client.get(smartbox_url, headers=qq_headers, timeout=5.0)
             if r_sb.status_code == 200:
                 items = r_sb.json().get("data", {}).get("song", {}).get("itemlist", [])
+                logger.info(f"QQ Smartbox fallback for '{keyword}': {len(items)} results")
                 for item in items:
                     mid = item.get("mid")
                     title = item.get("name", "")
@@ -392,6 +465,10 @@ class MusicManager:
                         )
         except Exception as e:
             logger.warning(f"Error calling QQ smartbox fallback: {e}")
+
+        # 最终如有结果，批量补全
+        if qq_songs:
+            qq_songs = await self._enrich_qq_songs(client, qq_songs)
 
         return qq_songs
 
