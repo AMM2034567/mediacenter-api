@@ -40,9 +40,13 @@ async def get_song_detail(song_id: str):
     return ApiResponse(data=song)
 
 @router.get("/song/{song_id}/url", response_model=ApiResponse[dict], summary="快速获取歌曲播放直链")
-async def get_song_play_url(song_id: str):
+async def get_song_play_url(
+    song_id: str,
+    title: Optional[str] = Query(None, description="歌曲名，辅助解析"),
+    artist: Optional[str] = Query(None, description="歌手名，辅助解析"),
+):
     mgr = MusicManager.get_instance()
-    url = await mgr.get_song_play_url(song_id)
+    url = await mgr.get_song_play_url(song_id, title=title or "", artist=artist or "")
     if not url:
         raise HTTPException(status_code=404, detail="无法解析该歌曲播放直链")
     return ApiResponse(data={"url": url})
