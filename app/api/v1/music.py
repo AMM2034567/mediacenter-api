@@ -8,9 +8,11 @@ from app.sources.music_manager import MusicManager
 router = APIRouter(prefix="/music", tags=["Music Center"])
 
 @router.get("/ranks", response_model=ApiResponse[List[MusicRank]], summary="获取音乐推荐与热门榜单列表")
-async def get_music_ranks():
+async def get_music_ranks(
+    platform: Optional[str] = Query(None, description="平台过滤: netease, qq 或 all")
+):
     mgr = MusicManager.get_instance()
-    ranks = mgr.get_ranks()
+    ranks = mgr.get_ranks(platform=platform)
     return ApiResponse(data=ranks)
 
 @router.get("/rank/{rank_id}", response_model=ApiResponse[List[MusicSong]], summary="获取指定榜单歌曲列表")
@@ -25,10 +27,11 @@ async def get_rank_songs(
 @router.get("/search", response_model=ApiResponse[List[MusicSong]], summary="全网音乐关键词搜索")
 async def search_music(
     kw: str = Query(..., description="搜索关键词，如歌曲名、歌手"),
+    platform: Optional[str] = Query(None, description="平台过滤: netease, qq 或 all"),
     limit: int = Query(30, ge=1, le=50, description="返回数量")
 ):
     mgr = MusicManager.get_instance()
-    songs = await mgr.search_songs(keyword=kw, limit=limit)
+    songs = await mgr.search_songs(keyword=kw, platform=platform, limit=limit)
     return ApiResponse(data=songs)
 
 @router.get("/song/{song_id}", response_model=ApiResponse[MusicSong], summary="获取单曲完整详情（含播放直链与LRC歌词）")

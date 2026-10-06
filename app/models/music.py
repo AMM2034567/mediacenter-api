@@ -19,4 +19,5 @@ class MusicRank(BaseModel):
     description: Optional[str] = Field(None, description="榜单描述")
     cover: Optional[str] = Field(None, description="榜单封面")
     update_frequency: Optional[str] = Field("每日更新", description="更新频率")
+    platform: str = Field("netease", description="平台：netease 或 qq")
     songs: List[MusicSong] = Field(default_factory=list, description="榜单歌曲列表")
